@@ -1,0 +1,13 @@
+user@host:~/project$ ls
+file1.txt file2.txt
+user@host:~/project$ pwd
+/home/user/project
+user@host:~/project$ mkdir data
+user@host:~/project$ cat data
+cat: data: Is a directory
+user@host:~/project$ npm install express
+npm ERR! code ENOTFOUND
+user@host:~/project$ npm install express --save
+added 50 packages in 2s
+user@host:~/project$ touch data/index.js
+user@host:~/project$ echo "done" > data/status.txt
