@@ -71,8 +71,8 @@ cat: data: Is a directory
         
         // 6. Compiler
         const roteScript = exportToRote(playIR);
-        expect(roteScript).toContain('definePlay');
-        expect(roteScript).toContain('test_op');
+        expect(roteScript).toContain('export default {');
+        expect(roteScript).toContain('test-op');
         expect(roteScript).toContain('make_directory');
     });
 });

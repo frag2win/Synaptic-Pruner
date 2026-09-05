@@ -1,6 +1,6 @@
 {
   "name": "synaptic-pruner",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TypeScript-based local pipeline that converts raw terminal and agent execution traces into a deterministic, executable program representation.",
   "main": "dist/index.js",
   "scripts": {

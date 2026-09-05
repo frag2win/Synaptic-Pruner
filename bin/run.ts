@@ -11,6 +11,7 @@ import { MockProvider } from "../src/synthesis/mockProvider";
 import * as fs from "fs";
 import ora from "ora";
 import chalk from "chalk";
+import { compileFlow } from "../src/compiler/compilerFlow";
 
 const program = new Command();
 
@@ -91,36 +92,10 @@ program.command("compile")
     .option("--live", "Use live Gemini model instead of mock")
     .option("--model <model>", "Model to use", "gemini-3.5-flash")
     .action(async (file, out, options) => {
-        const spinner = ora("Initializing compiler pipeline...").start();
         try {
-            const raw = fs.readFileSync(file, "utf8");
-            const events = parseTrace(raw);
-            const dag = buildDag(events);
-            const pruned = pruneDag(dag);
-            
-            const allWrites = pruned.flatMap(n => n.writes);
-            const literals = classifyLiterals(allWrites);
-            
-            const provider = options.live 
-                ? new GeminiProvider(process.env.GEMINI_API_KEY, options.model)
-                : new MockProvider();
-                
-            const synthesizer = new Synthesizer(provider);
-            
-            spinner.text = options.live ? `Synthesizing Play IR via ${options.model}...` : "Synthesizing Play IR via mock provider...";
-            const playIR = await synthesizer.synthesize(pruned, literals);
-            
-            spinner.text = "Exporting to Rote TS format...";
-            const { exportToRote } = await import("../src/compiler/roteExporter");
-            const roteScript = exportToRote(playIR);
-            
-            fs.writeFileSync(out, roteScript);
-            spinner.succeed(chalk.green(`Successfully compiled and saved Rote play to ${out}!`));
-            console.log(chalk.gray(`\nYou can now export this play using the Rote CLI:`));
-            console.log(chalk.white(`rote export ${out}`));
-        } catch (e: any) {
-            spinner.fail(chalk.red("Error compiling Play IR"));
-            console.error(chalk.red(e.message));
+            await compileFlow(file, out, options);
+        } catch (e) {
+            process.exit(1);
         }
     });
 

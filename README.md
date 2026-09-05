@@ -2,7 +2,7 @@
 
 **Transform chaotic terminal logs into clean, declarative infrastructure plays.**
 
-Synaptic Pruner is a TypeScript pipeline that ingests raw terminal output — full of progress bars, ANSI escape codes, warnings, and noise — and distills it into a structured, reproducible program representation. The output is a Rote-compliant Play that anyone can discover, share, and execute with a single command.
+Synaptic Pruner is a high-rigor infrastructure drafting accelerator that ingests raw terminal output — full of progress bars, ANSI escape codes, warnings, and noise — and distills it into a structured, reproducible program representation. Designed with absolute trust in mind, it requires mandatory human review to compile a Rote-compliant Play that anyone can discover, share, and execute.
 
 Named after the biological process where the developing brain eliminates weak neural connections to strengthen the important ones, Synaptic Pruner does the same for your terminal traces: it cuts away the noise and crystallizes the signal.
 
@@ -46,9 +46,9 @@ Builds a directed acyclic graph of command dependencies. If `npm install` ran af
 
 **File:** `src/synthesis/dagBuilder.ts`
 
-### Stage 3 — Backward Pruning
+### Stage 3 — Structural Pruning
 
-Walks the DAG in reverse and eliminates noise nodes: progress bars, redundant warnings, informational output that does not affect the final state. Only structurally significant operations survive.
+Traverses the causal DAG to strip disconnected noise, abandoned exploratory loops, and dead-end commands based on reachability and exit codes within context. This is graph-derived pruning — not raw exit-code filtering prior to graph construction. Only structurally significant operations survive.
 
 **File:** `src/synthesis/pruner.ts`
 
@@ -58,15 +58,17 @@ Categorizes each surviving node by operation type: filesystem operations, packag
 
 **File:** `src/synthesis/classifier.ts`
 
-### Stage 5 — Synthesis
+### Stage 5 — Semantic Synthesis (Network / Cloud Provider)
 
-Sends the pruned, classified trace to the Gemini LLM with a strict YAML schema template. The model returns a structured Play IR (Intermediate Representation) validated against a Zod schema.
+Routes the structured DAG through the active inference provider with a strict YAML schema template. By default, it runs via local mock for safe testing. When the `--live` flag is passed, it executes a real network round-trip to the Google Gemini API to deduce infrastructure intent. The model returns a structured Play IR (Intermediate Representation) validated against a Zod schema firewall to prevent syntax drift.
 
-**Files:** `src/synthesis/synthesizer.ts`, `src/synthesis/geminiProvider.ts`
+**Files:** `src/synthesis/synthesizer.ts`, `src/synthesis/geminiProvider.ts`, `src/synthesis/mockProvider.ts`
 
-### Stage 6 — Compilation
+### Stage 6 — Compliant Compilation & Interactive Authoring Gate
 
-Transforms the validated Play IR into a Rote-compliant TypeScript file with proper JSDoc frontmatter, FlowOutput integration, and mode-aware stdout/stderr routing. The output passes all seven of Rote's lifecycle gates.
+Compiles the validated IR into a clean Rote Play using fully compliant exporter logic. 
+
+**The Authoring Invariant:** The pipeline halts before writing the final artifact, rendering the proposed Play to standard output. It requires an interactive confirmation via an active TTY (`process.stdin.isTTY`). If invoked non-interactively (headless, script, cron, or CI pipeline), it aborts safely to prevent accidental automated generation of unreviewed code.
 
 **File:** `src/compiler/roteExporter.ts`
 
@@ -190,6 +192,13 @@ The compiler achieves this by:
 | `commander` | CLI argument parsing |
 | `chalk` | Terminal color output |
 | `ora` | Spinner animations for CLI feedback |
+
+---
+
+## Out of Scope / Limitations
+
+- **Point-in-Time Authoring Gate:** The interactive approval reflects a human's review of the specific synthesized artifact for the specific session that produced it. It is not a standing guarantee that every future automated replay of that Play remains safe against infrastructure drift. Mitigating post-approval replay safety is a Rote-level or organizational policy decision, outside Synaptic Pruner's scope.
+- **Semantic Intent vs. Zod Validation:** Schema validation confirms the IR is structurally well-formed; it does not guarantee the LLM-inferred intent matches what the human actually meant. Always review the proposed artifact carefully.
 
 ---
 
