@@ -8,6 +8,7 @@ export const ExecutionNodeSchema = z.object({
   exitCode: z.number().optional(),
   reads: z.array(z.string()),
   writes: z.array(z.string()),
+  deletes: z.array(z.string()),
   parentIds: z.array(z.string()),
   childIds: z.array(z.string()),
   causalScore: z.number(),
