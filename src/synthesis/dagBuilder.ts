@@ -27,21 +27,25 @@ interface ResourceEffect {
 function normalizeResourcePath(resource: string, cwd: string): string {
     if (!resource) return resource;
 
+    const safeCwd = cwd
+        ? (cwd.startsWith("~") ? cwd.replace(/^~/, "/home/user") : (cwd.startsWith("/") ? cwd : `/${cwd}`))
+        : "/";
+
     if (resource.startsWith("CWD:")) {
         const target = resource.slice(4);
-        const normalized = path.posix.normalize(
-            path.posix.isAbsolute(target)
-                ? target
-                : path.posix.resolve(cwd, target)
-        );
+        const normTarget = target.startsWith("~") ? target.replace(/^~/, "/home/user") : target;
+        const normalized = path.posix.isAbsolute(normTarget)
+            ? path.posix.normalize(normTarget)
+            : path.posix.normalize(path.posix.join(safeCwd, normTarget));
         return `CWD:${normalized}`;
     }
 
-    return path.posix.normalize(
-        path.posix.isAbsolute(resource)
-            ? resource
-            : path.posix.resolve(cwd, resource)
-    );
+    const normResource = resource.startsWith("~") ? resource.replace(/^~/, "/home/user") : resource;
+    if (path.posix.isAbsolute(normResource)) {
+        return path.posix.normalize(normResource);
+    }
+
+    return path.posix.normalize(path.posix.join(safeCwd, normResource));
 }
 
 // Effect Extractors
@@ -94,10 +98,36 @@ function extractCdEffects(event: TraceEvent): ResourceEffect[] {
     return [{ path: `CWD:${target}`, type: "write", resourceKind: "environment" }];
 }
 
+function extractCpEffects(event: TraceEvent): ResourceEffect[] {
+    if (!event.command.startsWith("cp ")) return [];
+    const tokens = event.command.split(/\s+/).slice(1).filter(t => !t.startsWith("-"));
+    if (tokens.length < 2) return [];
+    const src = tokens[0];
+    const dest = tokens[tokens.length - 1];
+    return [
+        { path: src, type: "read", resourceKind: "file" },
+        { path: dest, type: "write", resourceKind: "file" }
+    ];
+}
+
+function extractMvEffects(event: TraceEvent): ResourceEffect[] {
+    if (!event.command.startsWith("mv ")) return [];
+    const tokens = event.command.split(/\s+/).slice(1).filter(t => !t.startsWith("-"));
+    if (tokens.length < 2) return [];
+    const src = tokens[0];
+    const dest = tokens[tokens.length - 1];
+    return [
+        { path: src, type: "delete", resourceKind: "file" },
+        { path: dest, type: "write", resourceKind: "file" }
+    ];
+}
+
 const extractors: EffectExtractor[] = [
     extractMkdirEffects,
     extractTouchEffects,
     extractRmEffects,
+    extractCpEffects,
+    extractMvEffects,
     extractRedirectEffects,
     extractCatEffects,
     extractCdEffects
@@ -157,11 +187,14 @@ export function buildDag(events: TraceEvent[]): ExecutionNode[] {
     const edges: DependencyEdge[] = [];
 
     const nodes: ExecutionNode[] = events.map(e => {
+        const rawCwd = e.cwd || "/";
+        const normCwd = rawCwd.startsWith("~") ? rawCwd.replace(/^~/, "/home/user") : (rawCwd.startsWith("/") ? rawCwd : `/${rawCwd}`);
         return {
             id: `node_${e.id}`,
             eventId: e.id,
             kind: "command",
             command: e.command,
+            cwd: normCwd,
             exitCode: e.exitCode,
             reads: [],
             writes: [],
@@ -225,9 +258,13 @@ export function buildDag(events: TraceEvent[]): ExecutionNode[] {
         }
 
         for (const writePath of current.writes) {
-            if (!writePath.startsWith("CWD:")) {
-                const parentDir = path.posix.dirname(writePath);
-                const dirCreator = createdDirectories.get(parentDir);
+            const isCwd = writePath.startsWith("CWD:");
+            const rawPath = isCwd ? writePath.slice(4) : writePath;
+            const parentDir = path.posix.dirname(rawPath);
+            
+            if (parentDir && parentDir !== "." && parentDir !== "/") {
+                const dirKey = isCwd ? `CWD:${parentDir}` : parentDir;
+                const dirCreator = createdDirectories.get(dirKey) || createdDirectories.get(parentDir);
                 if (dirCreator && dirCreator !== current.id) {
                     addEdge(edges, nodesMap, dirCreator, current.id, "directory", 0.95);
                 }

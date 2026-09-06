@@ -66,7 +66,7 @@ Routes the structured DAG through the active inference provider with a strict YA
 
 ### Stage 6 — Compliant Compilation & Interactive Authoring Gate
 
-Compiles the validated IR into a clean Rote Play using fully compliant exporter logic. 
+Compiles the validated IR into a clean Rote Play using fully compliant exporter logic.
 
 **The Authoring Invariant:** The pipeline halts before writing the final artifact, rendering the proposed Play to standard output. It requires an interactive confirmation via an active TTY (`process.stdin.isTTY`). If invoked non-interactively (headless, script, cron, or CI pipeline), it aborts safely to prevent accidental automated generation of unreviewed code.
 
@@ -154,7 +154,7 @@ npm test
 The final stage of the pipeline generates TypeScript that satisfies Rote's strict seven-gate release process:
 
 | Gate | What it checks |
-|------|---------------|
+| ------ | --------------- |
 | Static checks | Valid frontmatter, no bare `console.log`, correct metadata fields |
 | Runtime: human mode | Produces readable output on stdout in default mode |
 | Runtime: summary mode | Produces 1-3 line proof-of-life on stdout |
@@ -185,7 +185,7 @@ The compiler achieves this by:
 ## Dependencies
 
 | Package | Purpose |
-|---------|---------|
+| --------- | --------- |
 | `@google/genai` | Gemini API types (fetch used directly) |
 | `zod` | Runtime schema validation for Play IR |
 | `js-yaml` | YAML parsing for synthesized output |

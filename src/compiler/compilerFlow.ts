@@ -5,7 +5,7 @@ import * as readline from "readline/promises";
 import { parseTrace } from "../ingestion/traceParser";
 import { buildDag } from "../synthesis/dagBuilder";
 import { pruneDag } from "../synthesis/pruner";
-import { classifyLiterals } from "../synthesis/classifier";
+import { classifyResources } from "../synthesis/classifier";
 import { Synthesizer } from "../synthesis/synthesizer";
 import { GeminiProvider } from "../synthesis/geminiProvider";
 import { MockProvider } from "../synthesis/mockProvider";
@@ -16,10 +16,9 @@ export async function compileFlow(file: string, out: string, options: any): Prom
         const raw = fs.readFileSync(file, "utf8");
         const events = parseTrace(raw);
         const dag = buildDag(events);
-        const pruned = pruneDag(dag);
+        const pruned = pruneDag(dag, options.anchor);
         
-        const allWrites = pruned.flatMap(n => n.writes);
-        const literals = classifyLiterals(allWrites);
+        const classifications = classifyResources(pruned);
         
         const provider = options.live 
             ? new GeminiProvider(process.env.GEMINI_API_KEY, options.model)
@@ -28,7 +27,7 @@ export async function compileFlow(file: string, out: string, options: any): Prom
         const synthesizer = new Synthesizer(provider);
         
         spinner.text = options.live ? `Synthesizing Play IR via ${options.model}...` : "Synthesizing Play IR via mock provider...";
-        const playIR = await synthesizer.synthesize(pruned, literals);
+        const playIR = await synthesizer.synthesize(pruned, classifications);
         
         spinner.text = "Exporting to Rote TS format...";
         const { exportToRote } = await import("./roteExporter");

@@ -13,6 +13,10 @@ export const PlayIRAssertionSchema = z.object({
   expected: z.string().optional(),
 });
 
+export const PlayIRActionProvenanceSchema = z.object({
+  sourceNodeIds: z.array(z.string())
+});
+
 export const PlayIRActionSchema = z.object({
   id: z.string(),
   runtime: z.string(),
@@ -20,6 +24,7 @@ export const PlayIRActionSchema = z.object({
   target: z.string().optional(),
   command: z.string().optional(),
   idempotent: z.boolean().optional(),
+  provenance: PlayIRActionProvenanceSchema.optional(),
 });
 
 export const PlayIRSafetyBoundarySchema = z.object({

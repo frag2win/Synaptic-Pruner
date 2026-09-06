@@ -23,7 +23,8 @@ program
 program.command("parse")
     .description("Parse raw log and print pruned DAG")
     .argument("<file>", "Raw trace file")
-    .action((file) => {
+    .option("--anchor <id...>", "Explicit anchors for pruning")
+    .action((file, options) => {
         const spinner = ora("Reading file...").start();
         try {
             const raw = fs.readFileSync(file, "utf8");
@@ -34,7 +35,7 @@ program.command("parse")
             const dag = buildDag(events);
             
             spinner.text = "Pruning dead branches...";
-            const pruned = pruneDag(dag);
+            const pruned = pruneDag(dag, options.anchor);
             
             spinner.succeed(chalk.green(`Successfully parsed and pruned ${events.length} events down to ${pruned.length} causal nodes.`));
             console.log(chalk.blueBright(JSON.stringify(pruned, null, 2)));
@@ -49,6 +50,7 @@ program.command("synthesize")
     .argument("<file>", "Raw trace file")
     .option("--live", "Use live Gemini model instead of mock")
     .option("--model <model>", "Model to use", "gemini-3.5-flash")
+    .option("--anchor <id...>", "Explicit anchors for pruning")
     .action(async (file, options) => {
         const spinner = ora("Initializing pipeline...").start();
         try {
@@ -56,7 +58,7 @@ program.command("synthesize")
             const raw = fs.readFileSync(file, "utf8");
             const events = parseTrace(raw);
             const dag = buildDag(events);
-            const pruned = pruneDag(dag);
+            const pruned = pruneDag(dag, options.anchor);
             
             spinner.text = "Classifying literals...";
             const allWrites = pruned.flatMap(n => n.writes);
@@ -91,6 +93,7 @@ program.command("compile")
     .argument("[out]", "Output file", "play.ts")
     .option("--live", "Use live Gemini model instead of mock")
     .option("--model <model>", "Model to use", "gemini-3.5-flash")
+    .option("--anchor <id...>", "Explicit anchors for pruning")
     .action(async (file, out, options) => {
         try {
             await compileFlow(file, out, options);
