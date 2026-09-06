@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "tsx src/bin/run.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "release": "bash scripts/release.sh"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

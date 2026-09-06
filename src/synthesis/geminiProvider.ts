@@ -1,41 +1,40 @@
 import { SynthesizerProvider } from "./synthesizer";
+import { GoogleGenAI } from "@google/genai";
 
 export class GeminiProvider implements SynthesizerProvider {
     private modelName: string;
-    private key: string;
+    private ai: GoogleGenAI;
 
     constructor(apiKey?: string, modelName: string = "gemini-3.5-flash") {
         const key = apiKey || process.env.GEMINI_API_KEY;
         if (!key) {
             throw new Error("GEMINI_API_KEY is not set. Please set the environment variable or pass it to the constructor.");
         }
-        this.key = key;
+        
+        // Initialize the official SDK which handles retries and connection pooling
+        this.ai = new GoogleGenAI({ 
+            apiKey: key,
+            httpOptions: {
+                timeout: 30000 // 30s timeout per P4.2 hardening
+            }
+        });
         this.modelName = modelName;
     }
 
     async generatePlayIR(prompt: string): Promise<string> {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.modelName}:generateContent?key=${this.key}`;
-        
-        const headers: Record<string, string> = { 
-            "Content-Type": "application/json" 
-        };
-
-        const body = JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
+        const response = await this.ai.models.generateContent({
+            model: this.modelName,
+            contents: prompt,
+            config: {
+                temperature: 0,
+            }
         });
-
-        const res = await fetch(url, { method: "POST", headers, body });
         
-        if (!res.ok) {
-             const error = await res.text();
-             throw new Error(`Google API Error: ${res.status} ${res.statusText}\n${error}`);
-        }
-        
-        const data = await res.json();
-        let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        let text = response.text || "";
         
         // Clean markdown blocks if the LLM wraps the YAML
         text = text.replace(/```yaml\n?/g, '').replace(/```\n?/g, '');
         return text;
     }
 }
+
